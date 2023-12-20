@@ -7,12 +7,14 @@ class Particle {
   }
 
   oscillate(audioData) {
-    console.log(audioData)
     if (audioData) {
-      let frequency = audioData.leftFrequency + audioData.rightFrequency;
+      // Correctly use this.p to refer to the p5 instance
+      let frequency = this.p.lerp(audioData.leftFrequency, audioData.rightFrequency, audioData.crossfade);
+
+      // Rate
+      frequency *= audioData.rate;
       
       // Increase the impact of the frequency on the amplitude
-      // The multiplier here might need to be adjusted based on your frequency data range
       let amp = Math.sin(this.p.millis() * 0.001 * frequency) * 0.5;
   
       // Add this amplitude to the velocity for more noticeable movement
@@ -23,10 +25,8 @@ class Particle {
       
       // Optionally, you can also make particles bounce off the edges
       this.edges();
-      console.log("Frequency:", frequency, "Amplitude:", amp);
-
     }
-  }  
+  }
 
   display() {
     this.p.fill(200, 100, 100);

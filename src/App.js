@@ -16,6 +16,43 @@ function App() {
   const [leftPosition, setLeftPosition] = useState({ x: -1, y: 0, z: 0 });
   const [rightPosition, setRightPosition] = useState({ x: 1, y: 0, z: 0 });
   const [particleCount, setParticleCount] = useState(10000);
+  const [reversalExtent, setReversalExtent] = useState(0); // Range from -1 to 1
+  const [reversedLeftPosition, setReversedLeftPosition] = useState({ x: 0, y: 0, z: 0 });
+  const [reversedRightPosition, setReversedRightPosition] = useState({ x: 0, y: 0, z: 0 });
+  const [targetReversedLeftPosition, setTargetReversedLeftPosition] = useState({ x: 0, y: 0, z: 0 });
+  const [targetReversedRightPosition, setTargetReversedRightPosition] = useState({ x: 0, y: 0, z: 0 });
+  const [isAutomated, setIsAutomated] = useState(false);
+  const [automationInterval, setAutomationInterval] = useState(1000); // In milliseconds, adjust as needed
+
+
+  const lerp = (start, end, amt) => {
+    return (1 - amt) * start + amt * end;
+  };
+
+
+  useEffect(() => {
+    let animationFrameId;
+
+    const animate = () => {
+      // Interpolate current reversed positions towards target positions
+      setReversedLeftPosition(prev => ({
+        x: lerp(prev.x, targetReversedLeftPosition.x, 0.05),
+        y: lerp(prev.y, targetReversedLeftPosition.y, 0.05),
+        z: lerp(prev.z, targetReversedLeftPosition.z, 0.05)
+      }));
+      setReversedRightPosition(prev => ({
+        x: lerp(prev.x, targetReversedRightPosition.x, 0.05),
+        y: lerp(prev.y, targetReversedRightPosition.y, 0.05),
+        z: lerp(prev.z, targetReversedRightPosition.z, 0.05)
+      }));
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [targetReversedLeftPosition, targetReversedRightPosition]);
 
   useEffect(() => {
     try {
@@ -26,6 +63,14 @@ function App() {
       // Create PannerNodes regardless of the isSplit state
       const newLeftPanner = newAudioContext.createPanner();
       const newRightPanner = newAudioContext.createPanner();
+
+      // Set the panning model to HRTF for 3D spatial audio
+      newLeftPanner.panningModel = 'HRTF';
+      newRightPanner.panningModel = 'HRTF';
+
+      // Set the distance model to linear for linear decrease in volume with distance
+      newLeftPanner.distanceModel = 'linear';
+      newLeftPanner.distanceModel = 'linear';
 
       setAudioContext(newAudioContext);
       setGainNode(newGainNode);
@@ -57,20 +102,24 @@ function App() {
     updateOscillatorFrequency(oscillators.right, rightFrequency);
   }, [leftFrequency, rightFrequency, oscillators, audioContext]);
 
-  const updatePannerPosition = (panner, position) => {
-    try {
-      if (panner) {
-        panner.setPosition(position.x, position.y, position.z);
+  const updatePannerPosition = (panner, newPosition) => {
+    const rampDuration = 0.1; // Duration of the transition in seconds
+  
+    if (panner && audioContext && audioContext.state === 'running') {
+      try {
+        panner.positionX.linearRampToValueAtTime(newPosition.x, audioContext.currentTime + rampDuration);
+        panner.positionY.linearRampToValueAtTime(newPosition.y, audioContext.currentTime + rampDuration);
+        panner.positionZ.linearRampToValueAtTime(newPosition.z, audioContext.currentTime + rampDuration);
+      } catch (error) {
+        console.error("Error updating panner position:", error);
       }
-    } catch (error) {
-      console.error("Error updating panner position:", error);
     }
   };
 
   useEffect(() => {
-    updatePannerPosition(leftPanner, leftPosition);
-    updatePannerPosition(rightPanner, rightPosition);
-  }, [leftPosition, rightPosition, leftPanner, rightPanner]);
+    updatePannerPosition(leftPanner, reversedLeftPosition);
+    updatePannerPosition(rightPanner, reversedRightPosition);
+  }, [reversedLeftPosition, reversedRightPosition, leftPanner, rightPanner]);
 
   const toggleSound = () => {
     try {
@@ -87,7 +136,7 @@ function App() {
         updateOscillatorFrequency(leftOscillator, leftFrequency);
         updateOscillatorFrequency(rightOscillator, rightFrequency);
 
-        if (leftPanner && rightPanner) {
+        if (audioContext && leftPanner && rightPanner) {
           leftOscillator.connect(leftPanner);
           rightOscillator.connect(rightPanner);
           leftPanner.connect(gainNode);
@@ -136,6 +185,60 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    const targetReversedLeft = {
+      x: leftPosition.x * reversalExtent,
+      y: leftPosition.y * reversalExtent,
+      z: leftPosition.z * reversalExtent
+    };
+    const targetReversedRight = {
+      x: rightPosition.x * reversalExtent,
+      y: rightPosition.y * reversalExtent,
+      z: rightPosition.z * reversalExtent
+    };
+
+    // Store these target positions for the animation loop
+    setTargetReversedLeftPosition(targetReversedLeft);
+    setTargetReversedRightPosition(targetReversedRight);
+  }, [reversalExtent, leftPosition, rightPosition]);
+
+  useEffect(() => {
+    let intervalId;
+    let direction = 0.1; // Direction and step size combined
+  
+    if (isAutomated) {
+      intervalId = setInterval(() => {
+        setReversalExtent(prevExtent => {
+          // Calculate the new extent
+          let newExtent = prevExtent + direction;
+  
+          // Check and handle bounds
+          if (newExtent > 1) {
+            newExtent = 1;
+            direction = -0.1; // Reverse direction
+          } else if (newExtent < -1) {
+            newExtent = -1;
+            direction = 0.1; // Reverse direction
+          }
+  
+          return newExtent;
+        });
+      }, automationInterval / 10); // Adjust for a smooth transition
+    }
+  
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isAutomated, automationInterval]);  
+  
+  useEffect(() => {
+    updatePannerPosition(leftPanner, leftPosition);
+  }, [leftPosition, leftPanner]);
+  
+  useEffect(() => {
+    updatePannerPosition(rightPanner, rightPosition);
+  }, [rightPosition, rightPanner]);
+
   return (
     <div className="App">
       <header className="App-header">
@@ -169,7 +272,15 @@ function App() {
             <>
               <div className='option'>
                 <label>
-                  Left Frequency: <span>{leftFrequency} hz</span>
+                  Left Frequency: <span>
+                    <input
+                      min="1"
+                      max="999"
+                      step="0.01"
+                      value={leftFrequency}
+                      onChange={(e) => setLeftFrequency(e.target.value)}
+                    />hz
+                  </span>
                   <input
                     type="range"
                     min="1"
@@ -196,7 +307,15 @@ function App() {
 
               <div className='option'>
                 <label>
-                  Right Frequency: <span>{rightFrequency} hz</span>
+                  Right Frequency: <span>
+                    <input
+                      min="1"
+                      max="999"
+                      step="0.01"
+                      value={rightFrequency}
+                      onChange={(e) => setRightFrequency(e.target.value)}
+                    />hz
+                  </span>
                   <input
                     type="range"
                     min="1"
@@ -218,6 +337,46 @@ function App() {
                     value={rightPosition.x}
                     onChange={(e) => handlePositionChange('right', 'x', e.target.value)}
                   />
+                </label>
+              </div>
+
+              <div className='option'>
+                <label>
+                  Reversal Extent: <span>{reversalExtent}</span>
+                  <input
+                    type="range"
+                    min="-1"
+                    max="1"
+                    step="0.01"
+                    value={reversalExtent}
+                    onChange={(e) => setReversalExtent(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              <div className='option'>
+                <label>
+                  Automate Reversal:
+                  <input
+                    type="checkbox"
+                    checked={isAutomated}
+                    onChange={(e) => setIsAutomated(e.target.checked)}
+                  />
+                </label>
+              </div>
+
+              <div className='option'>
+                <label>
+                  Automation Interval (ms):
+                  <input
+                    type="range"
+                    min="1"
+                    max="999"
+                    step="1"
+                    value={automationInterval}
+                    onChange={(e) => setAutomationInterval(e.target.value)}
+                  />
+                  <span>{automationInterval} ms</span>
                 </label>
               </div>
             </>
