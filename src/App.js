@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { ReactP5Wrapper } from 'react-p5-wrapper';
-import sketch from './sketch.js';
 import './App.css';
 
 function App() {
@@ -22,13 +20,11 @@ function App() {
   const [targetReversedLeftPosition, setTargetReversedLeftPosition] = useState({ x: 0, y: 0, z: 0 });
   const [targetReversedRightPosition, setTargetReversedRightPosition] = useState({ x: 0, y: 0, z: 0 });
   const [isAutomated, setIsAutomated] = useState(false);
-  const [automationInterval, setAutomationInterval] = useState(1000); // In milliseconds, adjust as needed
-
+  const [automationInterval, setAutomationInterval] = useState(100); // In milliseconds, adjust as needed
 
   const lerp = (start, end, amt) => {
     return (1 - amt) * start + amt * end;
   };
-
 
   useEffect(() => {
     let animationFrameId;
@@ -36,16 +32,11 @@ function App() {
     const animate = () => {
       // Interpolate current reversed positions towards target positions
       setReversedLeftPosition(prev => ({
-        x: lerp(prev.x, targetReversedLeftPosition.x, 0.05),
-        y: lerp(prev.y, targetReversedLeftPosition.y, 0.05),
-        z: lerp(prev.z, targetReversedLeftPosition.z, 0.05)
+        x: lerp(prev.x, targetReversedLeftPosition.x, automationInterval),
       }));
       setReversedRightPosition(prev => ({
-        x: lerp(prev.x, targetReversedRightPosition.x, 0.05),
-        y: lerp(prev.y, targetReversedRightPosition.y, 0.05),
-        z: lerp(prev.z, targetReversedRightPosition.z, 0.05)
+        x: lerp(prev.x, targetReversedRightPosition.x, automationInterval),
       }));
-
       animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -457,8 +448,6 @@ function App() {
             />
           </label>
         </div>
-
-        <ReactP5Wrapper sketch={sketch} audioData={{ leftFrequency, rightFrequency, isSplit }} />
       </header>
     </div>
   );
