@@ -95,22 +95,34 @@ function App() {
 
   const updatePannerPosition = (panner, newPosition) => {
     const rampDuration = 0.1; // Duration of the transition in seconds
-  
+    
     if (panner && audioContext && audioContext.state === 'running') {
       try {
+        // Use linear ramp to smoothly change positions
         panner.positionX.linearRampToValueAtTime(newPosition.x, audioContext.currentTime + rampDuration);
         panner.positionY.linearRampToValueAtTime(newPosition.y, audioContext.currentTime + rampDuration);
         panner.positionZ.linearRampToValueAtTime(newPosition.z, audioContext.currentTime + rampDuration);
+        
+        // Adjust gain to achieve only left or right playing if position is at extreme ends
+        if (newPosition.x === -10) {
+          panner.positionX.value = -10; // All sound on the left
+        } else if (newPosition.x === 10) {
+          panner.positionX.value = 10; // All sound on the right
+        }
       } catch (error) {
         console.error("Error updating panner position:", error);
       }
     }
   };
-
+  
+  // Update the panner positions when the left or right positions change
   useEffect(() => {
-    updatePannerPosition(leftPanner, reversedLeftPosition);
-    updatePannerPosition(rightPanner, reversedRightPosition);
-  }, [reversedLeftPosition, reversedRightPosition, leftPanner, rightPanner]);
+    updatePannerPosition(leftPanner, leftPosition);
+  }, [leftPosition, leftPanner]);
+  
+  useEffect(() => {
+    updatePannerPosition(rightPanner, rightPosition);
+  }, [rightPosition, rightPanner]);
 
   const toggleSound = () => {
     try {
