@@ -1,464 +1,143 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
+// CIA-inspired Hemi-Sync presets based on Monroe Institute (Focus 10, Focus 12, etc.)
+const presets = {
+  'Focus 10 (Mind Awake, Body Asleep)': { left: 200, right: 208, diff: 8 }, // Delta (4-8 Hz) for cerebellum, low beta for cortex
+  'Focus 12 (Expanded Awareness)': { left: 300, right: 310, diff: 10 }, // Theta-alpha transition
+  'Deep Relaxation': { left: 250, right: 254, diff: 4 }, // Delta for sleep
+  'Enhanced Creativity': { left: 280, right: 288, diff: 8 } // Alpha for creativity
+};
+
 function App() {
-  const [isSplit, setIsSplit] = useState(false);
-  const [leftFrequency, setLeftFrequency] = useState(440);
-  const [rightFrequency, setRightFrequency] = useState(440);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [leftFreq, setLeftFreq] = useState(440);
+  const [rightFreq, setRightFreq] = useState(440);
   const [volume, setVolume] = useState(0.5);
+  const [preset, setPreset] = useState('');
   const [audioContext, setAudioContext] = useState(null);
   const [oscillators, setOscillators] = useState({ left: null, right: null });
   const [gainNode, setGainNode] = useState(null);
-  const [leftPanner, setLeftPanner] = useState(null);
-  const [rightPanner, setRightPanner] = useState(null);
-  const [leftPosition, setLeftPosition] = useState({ x: -1, y: 0, z: 0 });
-  const [rightPosition, setRightPosition] = useState({ x: 1, y: 0, z: 0 });
-  const [particleCount, setParticleCount] = useState(10000);
-  const [reversalExtent, setReversalExtent] = useState(0); // Range from -1 to 1
-  const [reversedLeftPosition, setReversedLeftPosition] = useState({ x: 0, y: 0, z: 0 });
-  const [reversedRightPosition, setReversedRightPosition] = useState({ x: 0, y: 0, z: 0 });
-  const [targetReversedLeftPosition, setTargetReversedLeftPosition] = useState({ x: 0, y: 0, z: 0 });
-  const [targetReversedRightPosition, setTargetReversedRightPosition] = useState({ x: 0, y: 0, z: 0 });
-  const [isAutomated, setIsAutomated] = useState(false);
-  const [automationInterval, setAutomationInterval] = useState(100); // In milliseconds, adjust as needed
+  const [panners, setPanners] = useState({ left: null, right: null });
 
-  const lerp = (start, end, amt) => {
-    return (1 - amt) * start + amt * end;
-  };
-
+  // Initialize AudioContext and nodes
   useEffect(() => {
-    let animationFrameId;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    const leftPanner = ctx.createPanner();
+    const rightPanner = ctx.createPanner();
+    leftPanner.panningModel = rightPanner.panningModel = 'HRTF';
+    leftPanner.distanceModel = rightPanner.distanceModel = 'linear';
+    leftPanner.positionX.setValueAtTime(-1, ctx.currentTime);
+    rightPanner.positionX.setValueAtTime(1, ctx.currentTime);
 
-    const animate = () => {
-      // Interpolate current reversed positions towards target positions
-      setReversedLeftPosition(prev => ({
-        x: lerp(prev.x, targetReversedLeftPosition.x, automationInterval),
-      }));
-      setReversedRightPosition(prev => ({
-        x: lerp(prev.x, targetReversedRightPosition.x, automationInterval),
-      }));
-      animationFrameId = requestAnimationFrame(animate);
-    };
+    setAudioContext(ctx);
+    setGainNode(gain);
+    setPanners({ left: leftPanner, right: rightPanner });
 
-    animate();
+    return () => ctx.close();
+  }, []);
 
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [targetReversedLeftPosition, targetReversedRightPosition]);
-
+  // Update volume
   useEffect(() => {
-    try {
-      const newAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const newGainNode = newAudioContext.createGain();
-      newGainNode.gain.setValueAtTime(volume, newAudioContext.currentTime);
-
-      // Create PannerNodes regardless of the isSplit state
-      const newLeftPanner = newAudioContext.createPanner();
-      const newRightPanner = newAudioContext.createPanner();
-
-      // Set the panning model to HRTF for 3D spatial audio
-      newLeftPanner.panningModel = 'HRTF';
-      newRightPanner.panningModel = 'HRTF';
-
-      // Set the distance model to linear for linear decrease in volume with distance
-      newLeftPanner.distanceModel = 'linear';
-      newLeftPanner.distanceModel = 'linear';
-
-      setAudioContext(newAudioContext);
-      setGainNode(newGainNode);
-      setLeftPanner(newLeftPanner);
-      setRightPanner(newRightPanner);
-    } catch (error) {
-      console.error("Error initializing audio context and nodes:", error);
-    }
-  }, [isSplit]); // Depend on isSplit so this effect runs when isSplit changes  
-
-  useEffect(() => {
-    if (gainNode) {
+    if (gainNode && audioContext) {
       gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
     }
   }, [volume, gainNode, audioContext]);
 
-  const updateOscillatorFrequency = (oscillator, frequency) => {
-    try {
-      if (oscillator && audioContext) {
-        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-      }
-    } catch (error) {
-      console.error("Error updating oscillator frequency:", error);
+  // Update oscillator frequencies
+  useEffect(() => {
+    if (oscillators.left && oscillators.right && audioContext) {
+      oscillators.left.frequency.setValueAtTime(leftFreq, audioContext.currentTime);
+      oscillators.right.frequency.setValueAtTime(rightFreq, audioContext.currentTime);
     }
-  };
+  }, [leftFreq, rightFreq, oscillators, audioContext]);
 
-  useEffect(() => {
-    updateOscillatorFrequency(oscillators.left, leftFrequency);
-    updateOscillatorFrequency(oscillators.right, rightFrequency);
-  }, [leftFrequency, rightFrequency, oscillators, audioContext]);
-
-  const updatePannerPosition = (panner, newPosition) => {
-    const rampDuration = 0.1; // Duration of the transition in seconds
-    
-    if (panner && audioContext && audioContext.state === 'running') {
-      try {
-        // Use linear ramp to smoothly change positions
-        panner.positionX.linearRampToValueAtTime(newPosition.x, audioContext.currentTime + rampDuration);
-        panner.positionY.linearRampToValueAtTime(newPosition.y, audioContext.currentTime + rampDuration);
-        panner.positionZ.linearRampToValueAtTime(newPosition.z, audioContext.currentTime + rampDuration);
-        
-        // Adjust gain to achieve only left or right playing if position is at extreme ends
-        if (newPosition.x === -10) {
-          panner.positionX.value = -10; // All sound on the left
-        } else if (newPosition.x === 10) {
-          panner.positionX.value = 10; // All sound on the right
-        }
-      } catch (error) {
-        console.error("Error updating panner position:", error);
-      }
-    }
-  };
-  
-  // Update the panner positions when the left or right positions change
-  useEffect(() => {
-    updatePannerPosition(leftPanner, leftPosition);
-  }, [leftPosition, leftPanner]);
-  
-  useEffect(() => {
-    updatePannerPosition(rightPanner, rightPosition);
-  }, [rightPosition, rightPanner]);
-
+  // Toggle sound
   const toggleSound = () => {
-    try {
-      if (!audioContext || !gainNode) return;
+    if (!audioContext || !gainNode || !panners.left || !panners.right) return;
 
-      if (oscillators.left && oscillators.right) {
-        oscillators.left.stop();
-        oscillators.right.stop();
-        setOscillators({ left: null, right: null });
-      } else {
-        const leftOscillator = audioContext.createOscillator();
-        const rightOscillator = audioContext.createOscillator();
+    if (isPlaying) {
+      oscillators.left?.stop();
+      oscillators.right?.stop();
+      setOscillators({ left: null, right: null });
+      setIsPlaying(false);
+    } else {
+      const leftOsc = audioContext.createOscillator();
+      const rightOsc = audioContext.createOscillator();
+      leftOsc.type = rightOsc.type = 'sine';
+      leftOsc.frequency.setValueAtTime(leftFreq, audioContext.currentTime);
+      rightOsc.frequency.setValueAtTime(rightFreq, audioContext.currentTime);
 
-        updateOscillatorFrequency(leftOscillator, leftFrequency);
-        updateOscillatorFrequency(rightOscillator, rightFrequency);
+      leftOsc.connect(panners.left);
+      rightOsc.connect(panners.right);
+      panners.left.connect(gainNode);
+      panners.right.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
-        if (audioContext && leftPanner && rightPanner) {
-          leftOscillator.connect(leftPanner);
-          rightOscillator.connect(rightPanner);
-          leftPanner.connect(gainNode);
-          rightPanner.connect(gainNode);
-        } else {
-          console.error("Error: Panner nodes are not initialized.");
-          return;
-        }
-
-        gainNode.connect(audioContext.destination);
-
-        leftOscillator.start();
-        rightOscillator.start();
-
-        setOscillators({ left: leftOscillator, right: rightOscillator });
-      }
-    } catch (error) {
-      console.error("Error toggling sound:", error);
+      leftOsc.start();
+      rightOsc.start();
+      setOscillators({ left: leftOsc, right: rightOsc });
+      setIsPlaying(true);
     }
   };
 
-  const handleVolumeChange = (e) => {
-    setVolume(e.target.value);
-  };
-
-  // Handle position change
-  const handlePositionChange = (channel, axis, value) => {
-    try {
-      const newPosition = parseFloat(value);
-      if (channel === 'left' || !isSplit) {
-        const updatedPosition = { ...leftPosition, [axis]: newPosition };
-        setLeftPosition(updatedPosition);
-        if (leftPanner) {
-          leftPanner.setPosition(updatedPosition.x, updatedPosition.y, updatedPosition.z);
-        }
-      }
-      if (channel === 'right' || !isSplit) {
-        const updatedPosition = { ...rightPosition, [axis]: newPosition };
-        setRightPosition(updatedPosition);
-        if (rightPanner) {
-          rightPanner.setPosition(updatedPosition.x, updatedPosition.y, updatedPosition.z);
-        }
-      }
-    } catch (error) {
-      console.error("Error handling position change:", error);
+  // Handle preset selection
+  const handlePresetChange = (e) => {
+    const selected = e.target.value;
+    setPreset(selected);
+    if (selected && presets[selected]) {
+      setLeftFreq(presets[selected].left);
+      setRightFreq(presets[selected].right);
     }
   };
-
-  useEffect(() => {
-    const targetReversedLeft = {
-      x: leftPosition.x * reversalExtent,
-      y: leftPosition.y * reversalExtent,
-      z: leftPosition.z * reversalExtent
-    };
-    const targetReversedRight = {
-      x: rightPosition.x * reversalExtent,
-      y: rightPosition.y * reversalExtent,
-      z: rightPosition.z * reversalExtent
-    };
-
-    // Store these target positions for the animation loop
-    setTargetReversedLeftPosition(targetReversedLeft);
-    setTargetReversedRightPosition(targetReversedRight);
-  }, [reversalExtent, leftPosition, rightPosition]);
-
-  useEffect(() => {
-    let intervalId;
-    let direction = 0.1; // Direction and step size combined
-  
-    if (isAutomated) {
-      intervalId = setInterval(() => {
-        setReversalExtent(prevExtent => {
-          // Calculate the new extent
-          let newExtent = prevExtent + direction;
-  
-          // Check and handle bounds
-          if (newExtent > 1) {
-            newExtent = 1;
-            direction = -0.1; // Reverse direction
-          } else if (newExtent < -1) {
-            newExtent = -1;
-            direction = 0.1; // Reverse direction
-          }
-  
-          return newExtent;
-        });
-      }, automationInterval / 10); // Adjust for a smooth transition
-    }
-  
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isAutomated, automationInterval]);  
-  
-  useEffect(() => {
-    updatePannerPosition(leftPanner, leftPosition);
-  }, [leftPosition, leftPanner]);
-  
-  useEffect(() => {
-    updatePannerPosition(rightPanner, rightPosition);
-  }, [rightPosition, rightPanner]);
 
   return (
     <div className="App">
       <header className="App-header">
-        <div className='options'>
-          <div className={`option ${isSplit ? 'activeControl' : 'disabledControl'}`}>
-            <label>
-              Split?
-              <input
-                type="checkbox"
-                checked={isSplit}
-                onChange={(e) => setIsSplit(e.target.checked)}
-              />
-            </label>
-          </div>
-
-          <div className='option'>
-            <label>
-              Volume: <span>{volume}</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={handleVolumeChange}
-              />
-            </label>
-          </div>
-
-          {isSplit ? (
-            <>
-              <div className='option'>
-                <label>
-                  Left Frequency: <span>
-                    <input
-                      min="1"
-                      max="999"
-                      step="0.01"
-                      value={leftFrequency}
-                      onChange={(e) => setLeftFrequency(e.target.value)}
-                    />hz
-                  </span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="999"
-                    step="0.01"
-                    value={leftFrequency}
-                    onChange={(e) => setLeftFrequency(e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className='option'>
-                <label>
-                  Left Position X: <span>{leftPosition.x}</span>
-                  <input
-                    type="range"
-                    min="-10"
-                    max="10"
-                    step="0.01"
-                    value={leftPosition.x}
-                    onChange={(e) => handlePositionChange('left', 'x', e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className='option'>
-                <label>
-                  Right Frequency: <span>
-                    <input
-                      min="1"
-                      max="999"
-                      step="0.01"
-                      value={rightFrequency}
-                      onChange={(e) => setRightFrequency(e.target.value)}
-                    />hz
-                  </span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="999"
-                    step="0.01"
-                    value={rightFrequency}
-                    onChange={(e) => setRightFrequency(e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className='option'>
-                <label>
-                  Right Position X: <span>{rightPosition.x}</span>
-                  <input
-                    type="range"
-                    min="-10"
-                    max="10"
-                    step="0.01"
-                    value={rightPosition.x}
-                    onChange={(e) => handlePositionChange('right', 'x', e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className='option'>
-                <label>
-                  Reversal Extent: <span>{reversalExtent}</span>
-                  <input
-                    type="range"
-                    min="-1"
-                    max="1"
-                    step="0.01"
-                    value={reversalExtent}
-                    onChange={(e) => setReversalExtent(e.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className='option'>
-                <label>
-                  Automate Reversal:
-                  <input
-                    type="checkbox"
-                    checked={isAutomated}
-                    onChange={(e) => setIsAutomated(e.target.checked)}
-                  />
-                </label>
-              </div>
-
-              <div className='option'>
-                <label>
-                  Automation Interval (ms):
-                  <input
-                    type="range"
-                    min="1"
-                    max="999"
-                    step="1"
-                    value={automationInterval}
-                    onChange={(e) => setAutomationInterval(e.target.value)}
-                  />
-                  <span>{automationInterval} ms</span>
-                </label>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className='option'>
-                <label>
-                  Frequency: <span>{leftFrequency} hz</span>
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="999"
-                  step="0.01"
-                  value={leftFrequency}
-                  onChange={(e) => {
-                    setLeftFrequency(e.target.value);
-                    setRightFrequency(e.target.value);
-                  }}
-                />
-              </div>
-
-              <div className='option'>
-                <label>
-                  Position X: <span>{leftPosition.x}</span>
-                  <input
-                    type="range"
-                    min="-10"
-                    max="10"
-                    step="0.01"
-                    value={leftPosition.x}
-                    onChange={(e) => {
-                      handlePositionChange('left', 'x', e.target.value);
-                      handlePositionChange('right', 'x', e.target.value);
-                    }}
-                  />
-                </label>
-                <label>
-                  Position Y: <span>{leftPosition.y}</span>
-                  <input
-                    type="range"
-                    min="-100"
-                    max="100"
-                    step="0.01"
-                    value={leftPosition.y}
-                    onChange={(e) => handlePositionChange('left', 'y', e.target.value)}
-                  />
-                </label>
-                <label>
-                  Position Z: <span>{leftPosition.z}</span>
-                  <input
-                    type="range"
-                    min="-100"
-                    max="100"
-                    step="0.01"
-                    value={leftPosition.z}
-                    onChange={(e) => handlePositionChange('left', 'z', e.target.value)}
-                  />
-                </label>
-              </div>
-            </>
-          )}
-        </div>
-        <button onClick={toggleSound}>
-          {oscillators.left && oscillators.right ? 'Stop Sound' : 'Play Sound'}
-        </button>
-
-
-        <div className='option'>
+        <h1>Hemi-Sync Audio</h1>
+        <div className="controls">
           <label>
-            Particle Count: <span>{particleCount}</span>
-            <input
+            Preset:
+            <select value={preset} onChange={handlePresetChange}>
+              <option value="">Custom</option>
+              {Object.keys(presets).map((key) => (
+                <option key={key} value={key}>{key}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Left Frequency: <input
+              type="number"
+              min="1"
+              max="999"
+              step="0.01"
+              value={leftFreq}
+              onChange={(e) => setLeftFreq(Number(e.target.value))}
+            /> Hz
+          </label>
+          <label>
+            Right Frequency: <input
+              type="number"
+              min="1"
+              max="999"
+              step="0.01"
+              value={rightFreq}
+              onChange={(e) => setRightFreq(Number(e.target.value))}
+            /> Hz
+          </label>
+          <label>
+            Volume: <input
               type="range"
-              min="10"
-              max="500"
-              value={particleCount}
-              onChange={(e) => setParticleCount(e.target.value)}
+              min="0"
+              max="1"
+              step="0.01"
+              value={volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
             />
           </label>
+          <button onClick={toggleSound}>{isPlaying ? 'Stop' : 'Play'}</button>
         </div>
       </header>
     </div>
