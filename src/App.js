@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// CIA-inspired Hemi-Sync presets based on Monroe Institute (Focus 10, Focus 12, etc.)
+// CIA-inspired Hemi-Sync presets with optional third frequency
 const presets = {
-  'Focus 10 (Mind Awake, Body Asleep)': { left: 200, right: 208, diff: 8 }, // Delta (4-8 Hz) for cerebellum, low beta for cortex
-  'Focus 12 (Expanded Awareness)': { left: 300, right: 310, diff: 10 }, // Theta-alpha transition
-  'Deep Relaxation': { left: 250, right: 254, diff: 4 }, // Delta for sleep
-  'Enhanced Creativity': { left: 280, right: 288, diff: 8 } // Alpha for creativity
+  'Focus 10 (Mind Awake, Body Asleep)': { left: 200, right: 208, third: 50 }, // 8 Hz delta + low carrier
+  'Focus 12 (Expanded Awareness)': { left: 300, right: 310, third: 60 }, // 10 Hz theta-alpha + carrier
+  'Deep Relaxation': { left: 250, right: 254, third: 40 }, // 4 Hz delta + carrier
+  'Enhanced Creativity': { left: 280, right: 288, third: 0 } // 8 Hz alpha, no carrier
 };
 
 function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [leftFreq, setLeftFreq] = useState(440);
   const [rightFreq, setRightFreq] = useState(440);
+  const [thirdFreq, setThirdFreq] = useState(0); // 0 means disabled
   const [volume, setVolume] = useState(0.5);
   const [preset, setPreset] = useState('');
+  const [darkMode, setDarkMode] = useState(true);
   const [audioContext, setAudioContext] = useState(null);
-  const [oscillators, setOscillators] = useState({ left: null, right: null });
+  const [oscillators, setOscillators] = useState({ left: null, right: null, third: null });
   const [gainNode, setGainNode] = useState(null);
   const [panners, setPanners] = useState({ left: null, right: null });
 
@@ -51,8 +53,11 @@ function App() {
     if (oscillators.left && oscillators.right && audioContext) {
       oscillators.left.frequency.setValueAtTime(leftFreq, audioContext.currentTime);
       oscillators.right.frequency.setValueAtTime(rightFreq, audioContext.currentTime);
+      if (oscillators.third) {
+        oscillators.third.frequency.setValueAtTime(thirdFreq, audioContext.currentTime);
+      }
     }
-  }, [leftFreq, rightFreq, oscillators, audioContext]);
+  }, [leftFreq, rightFreq, thirdFreq, oscillators, audioContext]);
 
   // Toggle sound
   const toggleSound = () => {
@@ -61,7 +66,8 @@ function App() {
     if (isPlaying) {
       oscillators.left?.stop();
       oscillators.right?.stop();
-      setOscillators({ left: null, right: null });
+      oscillators.third?.stop();
+      setOscillators({ left: null, right: null, third: null });
       setIsPlaying(false);
     } else {
       const leftOsc = audioContext.createOscillator();
@@ -74,11 +80,21 @@ function App() {
       rightOsc.connect(panners.right);
       panners.left.connect(gainNode);
       panners.right.connect(gainNode);
+
+      let thirdOsc = null;
+      if (thirdFreq > 0) {
+        thirdOsc = audioContext.createOscillator();
+        thirdOsc.type = 'sine';
+        thirdOsc.frequency.setValueAtTime(thirdFreq, audioContext.currentTime);
+        thirdOsc.connect(gainNode); // Center channel for carrier
+      }
+
       gainNode.connect(audioContext.destination);
 
       leftOsc.start();
       rightOsc.start();
-      setOscillators({ left: leftOsc, right: rightOsc });
+      thirdOsc?.start();
+      setOscillators({ left: leftOsc, right: rightOsc, third: thirdOsc });
       setIsPlaying(true);
     }
   };
@@ -90,13 +106,22 @@ function App() {
     if (selected && presets[selected]) {
       setLeftFreq(presets[selected].left);
       setRightFreq(presets[selected].right);
+      setThirdFreq(presets[selected].third);
     }
   };
 
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
   return (
-    <div className="App">
+    <div className={`App ${darkMode ? 'dark' : 'light'}`}>
       <header className="App-header">
         <h1>Hemi-Sync Audio</h1>
+        <button onClick={toggleDarkMode} style={{marginBottom: "37px"}}>
+          {darkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
         <div className="controls">
           <label>
             Preset:
@@ -126,6 +151,16 @@ function App() {
               value={rightFreq}
               onChange={(e) => setRightFreq(Number(e.target.value))}
             /> Hz
+          </label>
+          <label>
+            Carrier Frequency: <input
+              type="number"
+              min="0"
+              max="200"
+              step="0.01"
+              value={thirdFreq}
+              onChange={(e) => setThirdFreq(Number(e.target.value))}
+            /> Hz (0 to disable)
           </label>
           <label>
             Volume: <input
