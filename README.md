@@ -1,70 +1,78 @@
-# Getting Started with Create React App
+# Hemi-Sync Audio Generator
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A browser-based React application that generates Hemi-Sync-style binaural beats using the Web Audio API. Inspired by the Monroe Institute and declassified CIA Gateway Process documents, the app is designed to help induce altered states of consciousness through frequency-following response (FFR) via stereo headphones.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🔊 Features
 
-### `npm start`
+- **Preset-Based Audio**: Choose from built-in presets (Focus 10, Focus 12, Deep Relaxation, Enhanced Creativity), each tuned to specific brainwave frequencies.
+- **Manual Control**: Customize left, right, and optional third carrier frequencies.
+- **Volume Control**: Adjustable gain to fine-tune output.
+- **Dark/Light Mode**: Toggleable UI theme for comfortable viewing.
+- **Spatial Sound Panning**: Uses HRTF stereo positioning for immersive effects.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🧠 Presets (Based on CIA Documents)
 
-### `npm test`
+- **Focus 10** — Left: 200 Hz | Right: 208 Hz | Carrier: 50 Hz
+- **Focus 12** — Left: 300 Hz | Right: 310 Hz | Carrier: 60 Hz
+- **Deep Relaxation** — Left: 250 Hz | Right: 254 Hz | Carrier: 40 Hz
+- **Enhanced Creativity** — Left: 280 Hz | Right: 288 Hz | Carrier: None
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🛠 Setup & Usage
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Requirements
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Node.js (v16+)
+- npm or yarn
+- A modern browser (Chrome or Firefox recommended)
+- Stereo headphones (essential for binaural beat effect)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Installation
 
-### `npm run eject`
+```bash
+git clone https://github.com/your-username/hemisync-audio-generator.git
+cd hemisync-audio-generator
+npm install
+npm run dev
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Then open `http://localhost:3000` in your browser.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Controls
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- 🎧 Select a preset or enter frequencies manually.
+- 🔊 Adjust volume (0.0 to 1.0).
+- ▶️ Click **Play** to begin audio, or **Stop** to pause.
+- 🌓 Use **Dark Mode** toggle for visual comfort.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## 📦 Technologies
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- React 18 + Vite (dev server)
+- Web Audio API (oscillators, gain, panners)
+- JavaScript hooks for state + audio control
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+## 🪪 License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+MIT License. See LICENSE for details.
 
-### Analyzing the Bundle Size
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 🤝 Contributing
 
-### Making a Progressive Web App
+Pull requests are welcome! Add presets, improve UI/UX, or contribute audio enhancements.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+## 📚 References
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- [CIA Gateway Process PDF](https://www.cia.gov/readingroom/document/cia-rdp96-00788r001700210016-5)
+- Monroe Institute Hemi-Sync principles
