@@ -58,3 +58,7 @@ button {
 button:hover {
   background-color: var(--button-hover);
 }
+
+p {
+  margin: 5px 0;
+}
