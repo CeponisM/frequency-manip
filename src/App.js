@@ -1,12 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
-// CIA-inspired Hemi-Sync presets with third frequency
+// CIA-inspired Hemi-Sync presets
 const presets = {
-  'Focus 10 (Mind Awake, Body Asleep)': { left: 200, right: 208, third: 50, waveform: 'sine' }, // 8 Hz delta
-  'Focus 12 (Expanded Awareness)': { left: 300, right: 310, third: 60, waveform: 'triangle' }, // 10 Hz theta-alpha
-  'Deep Relaxation': { left: 250, right: 254, third: 40, waveform: 'sine' }, // 4 Hz delta
-  'Enhanced Creativity': { left: 280, right: 288, third: 0, waveform: 'triangle' } // 8 Hz alpha
+  'Focus 3 (Basic Relaxation)': { left: 200, right: 203, third: 40 }, // 3 Hz delta
+  'Focus 10 (Mind Awake, Body Asleep)': { left: 200, right: 208, third: 50 }, // 8 Hz delta
+  'Focus 12 (Expanded Awareness)': { left: 300, right: 310, third: 60 }, // 10 Hz theta-alpha
+  'Focus 15 (No Time)': { left: 250, right: 256, third: 45 }, // 6 Hz theta
+  'Focus 21 (Other Energy Systems)': { left: 280, right: 289, third: 55 }, // 9 Hz alpha
+  'Focus 27 (Creation and Healing)': { left: 260, right: 272, third: 50 }, // 12 Hz alpha-beta
+  'Deep Relaxation': { left: 250, right: 254, third: 40 }, // 4 Hz delta
+  'Enhanced Creativity': { left: 280, right: 288, third: 0 } // 8 Hz alpha
+};
+
+// Debounce function
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
 };
 
 function App() {
@@ -15,8 +28,8 @@ function App() {
   const [rightFreq, setRightFreq] = useState(440);
   const [thirdFreq, setThirdFreq] = useState(0);
   const [volume, setVolume] = useState(0.5);
-  const [waveform, setWaveform] = useState('sine');
   const [pinkNoise, setPinkNoise] = useState(false);
+  const [visualize, setVisualize] = useState(false);
   const [preset, setPreset] = useState('');
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') !== 'false');
   const [audioContext, setAudioContext] = useState(null);
@@ -24,6 +37,7 @@ function App() {
   const [gainNode, setGainNode] = useState(null);
   const [panners, setPanners] = useState({ left: null, right: null });
   const [noiseNode, setNoiseNode] = useState(null);
+  const canvasRef = useRef(null);
 
   // Initialize AudioContext and nodes
   useEffect(() => {
@@ -49,26 +63,30 @@ function App() {
     localStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
 
-  // Update volume with smooth ramp
-  useEffect(() => {
-    if (gainNode && audioContext) {
-      gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.05);
+  // Update volume with debounced smooth ramp
+  const updateVolume = debounce((newVolume) => {
+    if (gainNode && audioContext && audioContext.state === 'running') {
+      gainNode.gain.linearRampToValueAtTime(newVolume, audioContext.currentTime + 0.1);
     }
+  }, 50);
+
+  useEffect(() => {
+    updateVolume(volume);
   }, [volume, gainNode, audioContext]);
 
-  // Update oscillator frequencies and waveform
+  // Update oscillator frequencies with smoothing (sine waveform)
   useEffect(() => {
     if (oscillators.left && oscillators.right && audioContext) {
-      oscillators.left.frequency.linearRampToValueAtTime(leftFreq, audioContext.currentTime + 0.05);
-      oscillators.right.frequency.linearRampToValueAtTime(rightFreq, audioContext.currentTime + 0.05);
-      oscillators.left.type = waveform;
-      oscillators.right.type = waveform;
+      oscillators.left.frequency.linearRampToValueAtTime(leftFreq, audioContext.currentTime + 0.1);
+      oscillators.right.frequency.linearRampToValueAtTime(rightFreq, audioContext.currentTime + 0.1);
+      oscillators.left.type = 'sine';
+      oscillators.right.type = 'sine';
       if (oscillators.third) {
-        oscillators.third.frequency.linearRampToValueAtTime(thirdFreq, audioContext.currentTime + 0.05);
-        oscillators.third.type = waveform;
+        oscillators.third.frequency.linearRampToValueAtTime(thirdFreq, audioContext.currentTime + 0.1);
+        oscillators.third.type = 'sine';
       }
     }
-  }, [leftFreq, rightFreq, thirdFreq, waveform, oscillators, audioContext]);
+  }, [leftFreq, rightFreq, thirdFreq, oscillators, audioContext]);
 
   // Handle pink noise
   useEffect(() => {
@@ -82,7 +100,7 @@ function App() {
         const white = Math.random() * 2 - 1;
         data[i] = (lastOut + 0.02 * white) / 1.02;
         lastOut = data[i];
-        data[i] *= 0.1; // Lower amplitude for background
+        data[i] *= 0.1;
       }
       const source = audioContext.createBufferSource();
       source.buffer = buffer;
@@ -96,6 +114,63 @@ function App() {
     }
   }, [pinkNoise, audioContext, gainNode, noiseNode]);
 
+  // Canvas visualization (wave-like representation)
+  useEffect(() => {
+    if (!visualize || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    let animationFrame;
+
+    const draw = (time) => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw left wave (blue)
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(0, 0, 255, 0.7)';
+      for (let x = 0; x < width; x++) {
+        const t = (x / width) * 2 * Math.PI - (time * 0.001 * leftFreq) / 100;
+        const y = Math.sin(t) * 20 + height / 4;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Draw right wave (red)
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+      for (let x = 0; x < width; x++) {
+        const t = (x / width) * 2 * Math.PI - (time * 0.001 * rightFreq) / 100;
+        const y = Math.sin(t) * 20 + height / 2;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Draw binaural beat wave (green, interaction)
+      const beatFreq = Math.abs(leftFreq - rightFreq);
+      if (beatFreq > 0) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(0, 255, 0, 0.9)';
+        for (let x = 0; x < width; x++) {
+          const t = (x / width) * 2 * Math.PI - (time * 0.001 * beatFreq) / 10;
+          const leftY = Math.sin((x / width) * 2 * Math.PI - (time * 0.001 * leftFreq) / 100);
+          const rightY = Math.sin((x / width) * 2 * Math.PI - (time * 0.001 * rightFreq) / 100);
+          const y = (leftY + rightY) * 15 + (3 * height) / 4; // Interaction effect
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      animationFrame = requestAnimationFrame(draw);
+    };
+
+    if (visualize) {
+      animationFrame = requestAnimationFrame(draw);
+    }
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [visualize, leftFreq, rightFreq]);
+
   // Toggle sound
   const toggleSound = () => {
     if (!audioContext || !gainNode || !panners.left || !panners.right) return;
@@ -108,10 +183,12 @@ function App() {
       setOscillators({ left: null, right: null, third: null });
       setNoiseNode(null);
       setIsPlaying(false);
+      audioContext.suspend();
     } else {
+      audioContext.resume();
       const leftOsc = audioContext.createOscillator();
       const rightOsc = audioContext.createOscillator();
-      leftOsc.type = rightOsc.type = waveform;
+      leftOsc.type = rightOsc.type = 'sine';
       leftOsc.frequency.setValueAtTime(leftFreq, audioContext.currentTime);
       rightOsc.frequency.setValueAtTime(rightFreq, audioContext.currentTime);
 
@@ -123,7 +200,7 @@ function App() {
       let thirdOsc = null;
       if (thirdFreq > 0) {
         thirdOsc = audioContext.createOscillator();
-        thirdOsc.type = waveform;
+        thirdOsc.type = 'sine';
         thirdOsc.frequency.setValueAtTime(thirdFreq, audioContext.currentTime);
         thirdOsc.connect(gainNode);
       }
@@ -146,7 +223,6 @@ function App() {
       setLeftFreq(presets[selected].left);
       setRightFreq(presets[selected].right);
       setThirdFreq(presets[selected].third);
-      setWaveform(presets[selected].waveform);
     }
   };
 
@@ -155,20 +231,24 @@ function App() {
     setDarkMode(!darkMode);
   };
 
-  // Calculate binaural beat frequency
+  // Calculate binaural beat frequency and brainwave state
   const beatFreq = Math.abs(leftFreq - rightFreq).toFixed(2);
+  const brainwaveState = beatFreq < 4 ? 'Delta (deep sleep, relaxation)' :
+                        beatFreq < 8 ? 'Theta (meditation, intuition)' :
+                        beatFreq < 13 ? 'Alpha (calm focus, creativity)' :
+                        'Beta (alertness, concentration)';
 
   return (
     <div className={`App ${darkMode ? 'dark' : 'light'}`}>
       <header className="App-header">
         <h1>Hemi-Sync Audio</h1>
-        <button onClick={toggleDarkMode}>
+        <button className="theme-toggle" onClick={toggleDarkMode} aria-label="Toggle theme">
           {darkMode ? 'Light Mode' : 'Dark Mode'}
         </button>
         <div className="controls">
           <label>
             Preset:
-            <select value={preset} onChange={handlePresetChange}>
+            <select value={preset} onChange={handlePresetChange} aria-label="Select preset">
               <option value="">Custom</option>
               {Object.keys(presets).map((key) => (
                 <option key={key} value={key}>{key}</option>
@@ -183,6 +263,7 @@ function App() {
               step="0.01"
               value={leftFreq}
               onChange={(e) => setLeftFreq(Number(e.target.value))}
+              aria-label="Left frequency"
             /> Hz
           </label>
           <label>
@@ -193,6 +274,7 @@ function App() {
               step="0.01"
               value={rightFreq}
               onChange={(e) => setRightFreq(Number(e.target.value))}
+              aria-label="Right frequency"
             /> Hz
           </label>
           <label>
@@ -203,15 +285,8 @@ function App() {
               step="0.01"
               value={thirdFreq}
               onChange={(e) => setThirdFreq(Number(e.target.value))}
+              aria-label="Carrier frequency"
             /> Hz (0 to disable)
-          </label>
-          <label>
-            Waveform:
-            <select value={waveform} onChange={(e) => setWaveform(e.target.value)}>
-              <option value="sine">Sine</option>
-              <option value="triangle">Triangle</option>
-              <option value="square">Square</option>
-            </select>
           </label>
           <label>
             Pink Noise:
@@ -219,6 +294,16 @@ function App() {
               type="checkbox"
               checked={pinkNoise}
               onChange={(e) => setPinkNoise(e.target.checked)}
+              aria-label="Enable pink noise"
+            />
+          </label>
+          <label>
+            Visualize Hemi-Sync:
+            <input
+              type="checkbox"
+              checked={visualize}
+              onChange={(e) => setVisualize(e.target.checked)}
+              aria-label="Enable visualization"
             />
           </label>
           <label>
@@ -229,10 +314,18 @@ function App() {
               step="0.01"
               value={volume}
               onChange={(e) => setVolume(Number(e.target.value))}
+              aria-label="Volume"
             />
           </label>
-          <p>Binaural Beat: {beatFreq} Hz</p>
-          <button onClick={toggleSound}>{isPlaying ? 'Stop' : 'Play'}</button>
+          <div className="beat-info" title={`Binaural beat frequency (${beatFreq} Hz) induces ${brainwaveState}`}>
+            Binaural Beat: {beatFreq} Hz
+          </div>
+          <button onClick={toggleSound} aria-label={isPlaying ? 'Stop audio' : 'Play audio'}>
+            {isPlaying ? 'Stop' : 'Play'}
+          </button>
+          {visualize && (
+            <canvas ref={canvasRef} width="300" height="150" className="visualizer" />
+          )}
         </div>
       </header>
     </div>
