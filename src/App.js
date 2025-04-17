@@ -242,7 +242,7 @@ function App() {
     <div className={`App ${darkMode ? 'dark' : 'light'}`}>
       <header className="App-header">
         <h1>Hemi-Sync Audio</h1>
-        <button className="theme-toggle" onClick={toggleDarkMode} aria-label="Toggle theme">
+        <button className="theme-toggle" onClick={toggleDarkMode} aria-label="Toggle theme" style={{marginBottom: '37px'}}>
           {darkMode ? 'Light Mode' : 'Dark Mode'}
         </button>
         <div className="controls">
