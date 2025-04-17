@@ -130,7 +130,7 @@ function App() {
       ctx.beginPath();
       ctx.strokeStyle = 'rgba(0, 0, 255, 0.7)';
       for (let x = 0; x < width; x++) {
-        const t = (x / width) * 2 * Math.PI - (time * 0.001 * leftFreq) / 100;
+        const t = (x / width) * 2 * Math.PI - (time * 0.001 * leftFreq) / 3;
         const y = Math.sin(t) * 20 + height / 4;
         x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
@@ -140,7 +140,7 @@ function App() {
       ctx.beginPath();
       ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
       for (let x = 0; x < width; x++) {
-        const t = (x / width) * 2 * Math.PI - (time * 0.001 * rightFreq) / 100;
+        const t = (x / width) * 2 * Math.PI - (time * 0.001 * rightFreq) / 3;
         const y = Math.sin(t) * 20 + height / 2;
         x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
@@ -152,7 +152,7 @@ function App() {
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(0, 255, 0, 0.9)';
         for (let x = 0; x < width; x++) {
-          const t = (x / width) * 2 * Math.PI - (time * 0.001 * beatFreq) / 10;
+          const t = (x / width) * 2 * Math.PI - (time * 0.001 * beatFreq) / 3;
           const leftY = Math.sin((x / width) * 2 * Math.PI - (time * 0.001 * leftFreq) / 100);
           const rightY = Math.sin((x / width) * 2 * Math.PI - (time * 0.001 * rightFreq) / 100);
           const y = (leftY + rightY) * 15 + (3 * height) / 4; // Interaction effect
