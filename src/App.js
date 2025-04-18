@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
-// CIA-inspired Hemi-Sync presets
+// CIA-inspired Binaural presets
 const presets = {
   'Focus 3 (Basic Relaxation)': { left: 200, right: 203, third: 40 }, // 3 Hz delta
   'Focus 10 (Mind Awake, Body Asleep)': { left: 200, right: 208, third: 50 }, // 8 Hz delta
@@ -241,7 +241,7 @@ function App() {
   return (
     <div className={`App ${darkMode ? 'dark' : 'light'}`}>
       <header className="App-header">
-        <h1>Hemi-Sync Audio</h1>
+        <h1>Binaural Audio</h1>
         <button className="theme-toggle" onClick={toggleDarkMode} aria-label="Toggle theme" style={{marginBottom: '37px'}}>
           {darkMode ? 'Light Mode' : 'Dark Mode'}
         </button>
@@ -298,7 +298,7 @@ function App() {
             />
           </label>
           <label>
-            Visualize Hemi-Sync:
+            Visualize Audio:
             <input
               type="checkbox"
               checked={visualize}

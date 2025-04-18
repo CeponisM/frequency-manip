@@ -1,78 +1,67 @@
-# Hemi-Sync Audio Generator
+# BinauralSync
 
-A browser-based React application that generates Hemi-Sync-style binaural beats using the Web Audio API. Inspired by the Monroe Institute and declassified CIA Gateway Process documents, the app is designed to help induce altered states of consciousness through frequency-following response (FFR) via stereo headphones.
+**BinauralSync** is a web-based application for exploring the effects of binaural beats—auditory illusions created when two tones of slightly different frequencies are played in each ear. This app allows users to generate and experiment with customizable binaural tones aimed at facilitating focused, relaxed, or meditative states.
 
----
+## 📄 Background
 
-## 🔊 Features
+Binaural beats are auditory illusions created by playing two slightly different frequencies in each ear, resulting in the perception of a third frequency—the difference between them. These phenomena have been studied for their potential to affect brainwave states.
 
-- **Preset-Based Audio**: Choose from built-in presets (Focus 10, Focus 12, Deep Relaxation, Enhanced Creativity), each tuned to specific brainwave frequencies.
-- **Manual Control**: Customize left, right, and optional third carrier frequencies.
-- **Volume Control**: Adjustable gain to fine-tune output.
-- **Dark/Light Mode**: Toggleable UI theme for comfortable viewing.
-- **Spatial Sound Panning**: Uses HRTF stereo positioning for immersive effects.
+This app includes presets inspired by the "Focus Levels" outlined in the **Gateway Process**, a series of consciousness expansion techniques developed by the **Monroe Institute** and documented by the **CIA** in the 1983 report:
 
----
+📄 **CIA Document:** [Analysis and Assessment of Gateway Process (CIA-RDP96-00788R001700210016-5)](https://www.cia.gov/readingroom/docs/CIA-RDP96-00788R001700210016-5.pdf)
 
-## 🧠 Presets (Based on CIA Documents)
 
-- **Focus 10** — Left: 200 Hz | Right: 208 Hz | Carrier: 50 Hz
-- **Focus 12** — Left: 300 Hz | Right: 310 Hz | Carrier: 60 Hz
-- **Deep Relaxation** — Left: 250 Hz | Right: 254 Hz | Carrier: 40 Hz
-- **Enhanced Creativity** — Left: 280 Hz | Right: 288 Hz | Carrier: None
+## 🎧 What Are Binaural Beats?
 
----
+When two tones of slightly different frequencies are played into each ear, the brain perceives a third tone — a binaural beat — which is the difference between the two frequencies. For example, if 210 Hz is played in the left ear and 200 Hz in the right, a 10 Hz binaural beat is perceived. Research suggests that different beat frequencies may correlate with different mental states.
 
-## 🛠 Setup & Usage
+## 🛠 Features
 
-### Requirements
+- Adjustable left and right channel frequencies
+- Optional third (carrier) tone
+- Pink noise overlay
+- Real-time wave visualization
+- Preset Focus Levels inspired by the Gateway Experience
+- Dark and light theme toggle
 
-- Node.js (v16+)
-- npm or yarn
-- A modern browser (Chrome or Firefox recommended)
-- Stereo headphones (essential for binaural beat effect)
+## 🧠 Brainwave States Presets
 
-### Installation
+| State      | Beat Frequency | Description                     |
+|------------|----------------|---------------------------------|
+| Delta      | 0.5 - 4 Hz     | Deep sleep, unconsciousness     |
+| Theta      | 4 - 8 Hz       | Deep relaxation, meditation     |
+| Alpha      | 8 - 12 Hz      | Relaxed alertness               |
+| Beta       | 12 - 30 Hz     | Active thinking, concentration  |
+| Gamma      | 30 - 100 Hz    | Higher mental activity          |
 
-```bash
-git clone https://github.com/your-username/hemisync-audio-generator.git
-cd hemisync-audio-generator
-npm install
-npm run dev
-```
+## 🖥️ Tech Stack
 
-Then open `http://localhost:3000` in your browser.
+- React.js
+- Web Audio API
+- Canvas API for real-time visuals
 
-### Controls
+## 🚀 Usage
 
-- 🎧 Select a preset or enter frequencies manually.
-- 🔊 Adjust volume (0.0 to 1.0).
-- ▶️ Click **Play** to begin audio, or **Stop** to pause.
-- 🌓 Use **Dark Mode** toggle for visual comfort.
-
----
-
-## 📦 Technologies
-
-- React 18 + Vite (dev server)
-- Web Audio API (oscillators, gain, panners)
-- JavaScript hooks for state + audio control
-
----
-
-## 🪪 License
-
-MIT License. See LICENSE for details.
-
----
-
-## 🤝 Contributing
-
-Pull requests are welcome! Add presets, improve UI/UX, or contribute audio enhancements.
-
----
+1. Open the app in your browser.
+2. Select a preset or enter custom frequencies.
+3. Use headphones for best effect (stereo playback is required).
+4. Adjust levels as needed for comfort and focus.
 
 ## 📚 References
 
-- [CIA Gateway Process PDF](https://www.cia.gov/readingroom/document/cia-rdp96-00788r001700210016-5)
-- Monroe Institute Hemi-Sync principles
+[CIA Gateway Process (PDF)](https://www.cia.gov/readingroom/docs/CIA-RDP96-00788R001700210016-5.pdf)
+[The Monroe Institute](https://www.monroeinstitute.org/)
+[Wikipedia on Binaural Beats](https://en.wikipedia.org/wiki/Binaural_beats)
+
+## ⚖️ Legal
+The Monroe Institute's term "Hemi-Sync®" is a registered trademark. This app does not include Monroe's proprietary audio content and does not claim any rights to their copyrighted work. Reference to Focus Levels and technique descriptions are derived from public domain sources, primarily the aforementioned CIA document.
+
+## ⚠️ Disclaimer
+
+This project is for educational and exploratory purposes only. It is not affiliated with or endorsed by the Monroe Institute. All Monroe-related terms (e.g., "Hemi-Sync", "Focus Levels") are used in reference to their mention in public domain government documents and are not used commercially. It is not a medical device and should not be used as a substitute for professional medical advice. Always consult with a healthcare provider if you have concerns about auditory effects or neurological conditions.
+
+## 📜 Legal
+
+This app does **not** use or distribute proprietary content from any specific organization. The term "binaural beats" refers to a general audio phenomenon and is not trademarked. The app does not reference or include any trademarked or copyrighted content from third-party sources.
+
+Developed with ❤️ as an open-source exploration tool.
